@@ -1,0 +1,11 @@
+{% sw_extends '@Storefront/storefront/base/head.html.twig' %}
+
+{# Injects the ClickTrail loader script into <head>.
+   TODO verify block name (`base_head`) against the Shopware 6.6 default theme
+   before first release; move to document.html.twig override only if needed. #}
+{% block base_head %}
+    {{ parent() }}
+    {# Loader snippet is rendered from plugin config (site id / endpoint) once
+       the transport path is verified; placeholder until then. #}
+    {# <script src="{{ asset('bundles/shopwareclicktrail/clicktrail.js') }}" defer></script> #}
+{% endblock %}

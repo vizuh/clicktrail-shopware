@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services
+                               http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <services>
+        <!-- Config reader -->
+        <service id="ClickTrail\Shopware\Service\PluginConfig" public="false">
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
+        </service>
+
+        <!-- Consent -->
+        <service id="ClickTrail\Shopware\Consent\ShopwareConsentResolver" public="false">
+            <argument type="service" id="request_stack"/>
+        </service>
+        <service id="ClickTrail\Shopware\Consent\ConsentGate" public="false">
+            <argument type="service" id="ClickTrail\Shopware\Consent\ShopwareConsentResolver"/>
+        </service>
+
+        <!-- Storefront capture -->
+        <service id="ClickTrail\Shopware\Storefront\Subscriber\RequestSubscriber" public="false">
+            <argument type="service" id="ClickTrail\Shopware\Service\PluginConfig"/>
+            <argument type="service" id="session.factory"/>
+            <tag name="kernel.event_listener" event="kernel.request" method="__invoke" priority="100"/>
+        </service>
+
+        <!-- Commerce subscribers (string state-machine event names; verify against 6.6) -->
+        <service id="ClickTrail\Shopware\Commerce\Subscriber\OrderPlacedSubscriber" public="false">
+            <argument type="service" id="ClickTrail\Shopware\Service\PluginConfig"/>
+            <argument type="service" id="ClickTrail\Shopware\Consent\ConsentGate"/>
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+            <tag name="kernel.event_listener" event="checkout.order.placed" method="__invoke"/>
+        </service>
+        <service id="ClickTrail\Shopware\Commerce\Subscriber\OrderPaidSubscriber" public="false">
+            <argument type="service" id="ClickTrail\Shopware\Service\PluginConfig"/>
+            <argument type="service" id="ClickTrail\Shopware\Consent\ConsentGate"/>
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+            <tag name="kernel.event_listener" event="state_enter.order_transaction_state.paid" method="__invoke"/>
+        </service>
+        <service id="ClickTrail\Shopware\Commerce\Subscriber\OrderCompletedSubscriber" public="false">
+            <argument type="service" id="ClickTrail\Shopware\Service\PluginConfig"/>
+            <argument type="service" id="ClickTrail\Shopware\Consent\ConsentGate"/>
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+            <tag name="kernel.event_listener" event="state_enter.order_state.completed" method="__invoke"/>
+        </service>
+        <service id="ClickTrail\Shopware\Commerce\Subscriber\OrderCancelledSubscriber" public="false">
+            <argument type="service" id="ClickTrail\Shopware\Service\PluginConfig"/>
+            <argument type="service" id="ClickTrail\Shopware\Consent\ConsentGate"/>
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+            <tag name="kernel.event_listener" event="state_enter.order_state.cancelled" method="__invoke"/>
+        </service>
+        <service id="ClickTrail\Shopware\Commerce\Subscriber\RefundSubscriber" public="false">
+            <argument type="service" id="ClickTrail\Shopware\Service\PluginConfig"/>
+            <argument type="service" id="ClickTrail\Shopware\Consent\ConsentGate"/>
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+            <tag name="kernel.event_listener" event="state_enter.order_transaction_state.refunded" method="__invoke"/>
+        </service>
+
+        <!-- First-party proxy controller (route via attributes) -->
+        <service id="ClickTrail\Shopware\Controller\CollectController" public="true">
+            <argument type="service" id="ClickTrail\Shopware\Service\PluginConfig"/>
+            <argument type="service" id="ClickTrail\Shopware\Consent\ConsentGate"/>
+        </service>
+    </services>
+</container>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Plugin configuration (Settings > Extensions > ClickTrail).
+  Gate semantics (assumed, pending Hugo confirmation): switch off = that use
+  does not itself require CMP consent beyond the base gate.
+-->
+<stores>
+    <store>
+        <name>siteId</name>
+        <label>Site ID</label>
+        <type>text</type>
+        <position>1</position>
+    </store>
+    <store>
+        <name>apiEndpoint</name>
+        <label>API endpoint (ingest base URL)</label>
+        <type>text</type>
+        <position>2</position>
+    </store>
+    <store>
+        <name>consentMode</name>
+        <label>Consent integration mode</label>
+        <type>select</type>
+        <options>
+            <option>
+                <value>auto-detect</value>
+                <label>Auto-detect (CMP hook point)</label>
+            </option>
+            <option>
+                <value>custom</value>
+                <label>Custom resolver (developer-supplied)</label>
+            </option>
+        </options>
+        <defaultValue>auto-detect</defaultValue>
+        <position>3</position>
+    </store>
+    <store>
+        <name>enableCapture</name>
+        <label>Capture storefront touches</label>
+        <type>bool</type>
+        <defaultValue>true</defaultValue>
+        <position>4</position>
+    </store>
+    <store>
+        <name>enableSaleForwarding</name>
+        <label>Forward sale.completed / lifecycle events</label>
+        <type>bool</type>
+        <defaultValue>true</defaultValue>
+        <position>5</position>
+    </store>
+    <store>
+        <name>enableRefundForwarding</name>
+        <label>Forward sale.refunded events</label>
+        <type>bool</type>
+        <defaultValue>true</defaultValue>
+        <position>6</position>
+    </store>
+    <store>
+        <name>firstPartyProxyEnabled</name>
+        <label>Enable first-party proxy route (/clicktrail/collect)</label>
+        <type>bool</type>
+        <defaultValue>false</defaultValue>
+        <position>7</position>
+    </store>
+</stores>

@@ -1,0 +1,39 @@
+{
+    "name": "vizuh/shopware-clicktrail",
+    "description": "Shopware 6.6 plugin for ClickTrail attribution: storefront touch capture, consent-aware sale/refund forwarding, first-party collect proxy.",
+    "type": "shopware-platform-plugin",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.1",
+        "shopware/core": "~6.6",
+        "clicktrail/php-sdk": "dev-main"
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../clicktrail-php",
+            "options": {"symlink": true}
+        }
+    ],
+    "autoload": {
+        "psr-4": {"ClickTrail\\Shopware\\": "src/"}
+    },
+    "extra": {
+        "shopware-plugin-class": "ClickTrail\\Shopware\\ClickTrail",
+        "label": {
+            "en-GB": "ClickTrail Attribution"
+        },
+        "description": {
+            "en-GB": "First/last-touch campaign attribution for Shopware: capture storefront visits, attach refund lifecycle to initial attribution, forward consent-gated conversion events."
+        },
+        "vendor": {"en-GB": "Vizuh"}
+    },
+    "authors": [
+        {"name": "Vizuh OU", "email": "hugo@vizuh.com"}
+    ],
+    "keywords": ["attribution", "utm", "gclid", "consent", "shopware"],
+    "support": {
+        "issues": "https://github.com/vizuh/clicktrail-shopware/issues",
+        "source": "https://github.com/vizuh/clicktrail-shopware"
+    }
+}
