@@ -4,7 +4,7 @@
 
 **vizuh/shopware-clicktrail**
 
-覆盖 Shopware 6 电商全生命周期的 ClickTrail 归因 —— 采集店面访问，转发经同意门控的 sale 与 refund 事件，并始终关联到最初的归因记录。
+采集店面中观测到的获客上下文，并映射已配置的 Shopware 6 订单状态事件。订单级持久化和实时投递仍受已记录的推迟事项约束。
 
 </div>
 
@@ -29,7 +29,7 @@
 
 ## 为什么
 
-常见的电商追踪器往往只打一个购买像素就完事。这个 Shopware 6.6 插件把确定性的 ClickTrail 内核（[`clicktrail/php-sdk`](https://github.com/vizuh/clicktrail-php)）接入完整的电商生命周期：付费搜索带来的访问在店面被采集，之后的每次状态变化 —— 下单、支付、完成、取消、退款 —— 都变成携带订单金额、币种、客户 ID 和订单号的、经同意门控的事件信封。退款从来不是孤立数据；它始终关联到产生这笔销售的归因。
+此插件目前展示两条独立路径：它在店面会话中采集观测到的获客上下文，并将已配置的订单状态变化映射为经同意门控的事件 envelope。仅使用会话存储还无法把该上下文带到后续订单生命周期事件中，因此此版本不提供端到端电商归因。测试投递前请阅读“状态与推迟事项”。
 
 ## 安装
 
@@ -90,10 +90,10 @@ Settings → Extensions → ClickTrail（`src/Resources/config/config.xml`），
 | OrderPlacedSubscriber | `checkout.order.placed` | `sale` |
 | OrderPaidSubscriber | `state_enter.order_transaction_state.paid` | `sale`（已支付阶段） |
 | OrderCompletedSubscriber | `state_enter.order_state.completed` | `sale`（已完成） |
-| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale` + `status=cancelled` 附加字段 —— 不算退款 |
+| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale` + `status=cancelled` 附加字段；不算退款 |
 | RefundSubscriber | `state_enter.order_transaction_state.refunded` | `refund` |
 
-每个信封都携带订单金额、币种、客户 ID 和订单号。退款信封保持与 `storefront_visit` 时采集的归因的关联。状态机事件名在首个 release tag 前标记为针对 6.6 的 `TODO verify`。
+事件 envelope 的 schema 包含订单金额、币种、客户 ID 和订单号。当前仅使用会话的存储方式还不能证明店面归因会进入这些生命周期 envelope。状态机事件名在首个 release tag 前仍标记为针对 Shopware 6.6 的 `TODO verify`。
 
 ## 同意门控
 
@@ -107,7 +107,7 @@ if ($snapshot === null) {
 }
 ```
 
-`ShopwareConsentResolver` 是 CMP 挂载点：`auto-detect` 模式读取由 loader 片段注入的 `window.__clicktrail_consent` 载荷；`custom` 模式则由你替换 `services.xml` 中的服务定义。在接入真正的 resolver 之前，它返回 all-unknown 快照 —— 因此默认情况下什么都不转发。
+`ShopwareConsentResolver` 是 CMP 挂载点：`auto-detect` 模式读取由 loader 片段注入的 `window.__clicktrail_consent` 载荷；`custom` 模式则由你替换 `services.xml` 中的服务定义。在接入真正的 resolver 之前，它返回 all-unknown 快照；因此默认情况下什么都不转发。
 
 ## 第一方代理
 
@@ -123,7 +123,7 @@ return new JsonResponse(['queued' => 0], 202);
 
 ## 状态存储
 
-v1 的明确设计选择：归因状态**只保存在店面 session 中**。不附带数据库表，因此没有 migration。后果：订单生命周期事件目前还无法读回数天前采集的归因 —— 将 `StoredState` 随订单持久化是计划中的 v2 工作。
+v1 的明确设计选择：归因状态**只保存在店面 session 中**。不附带数据库表，因此没有 migration。后果：订单生命周期事件目前还无法读回数天前采集的归因；将 `StoredState` 随订单持久化是计划中的 v2 工作。
 
 ## 差异对比
 
@@ -138,15 +138,15 @@ v1 的明确设计选择：归因状态**只保存在店面 session 中**。不�
 
 分发需经过 Shopware Store，上架前会审核质量、安全、兼容性与合规性：
 
-- 不使用动态 SQL —— 只用 DAL repository 或参数化的 DBAL。
+- 不使用动态 SQL；只用 DAL repository 或参数化的 DBAL。
 - 店面写路由必须处理 CSRF。
 - 除同意允许的范围外不含 PII。
 - 通过 theme block 进行兼容 CSP 的脚本注入。
-- 同意行为遵循 [`docs/consent-compatibility-plan.md`](../docs/consent-compatibility-plan.md) 中的规范化契约（unknown = denied）。
+- 同意行为遵循[共享 SDK 同意契约](https://github.com/vizuh/clicktrail-php/tree/main/src/Consent)（unknown = denied）。
 
 ## 状态与推迟事项
 
-- 具体 CMP 集成（Cookiebot/CookieYes/iubenda 桥接）：已推迟 —— resolver 目前返回 all-unknown，接入前不会有任何转发。
+- 具体 CMP 集成（Cookiebot/CookieYes/iubenda 桥接）：已推迟；resolver 目前返回 all-unknown，接入前不会有任何转发。
 - `CollectController` 与电商订阅者中的 `BatchClient` 排队：已推迟，等待线上端点验证。
 - Twig block 名称与状态机事件名称：已在首个 release tag 前标记为对 Shopware 6.6 的 `TODO verify`。
 

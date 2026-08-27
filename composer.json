@@ -1,6 +1,6 @@
 {
     "name": "vizuh/shopware-clicktrail",
-    "description": "Shopware 6.6 plugin for ClickTrail attribution: storefront touch capture, consent-aware sale/refund forwarding, first-party collect proxy.",
+    "description": "Shopware 6.6 plugin for storefront acquisition-context capture and configured order-event mapping; delivery has documented deferrals.",
     "type": "shopware-platform-plugin",
     "license": "MIT",
     "require": {

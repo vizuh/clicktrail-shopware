@@ -4,7 +4,9 @@
 
 **vizuh/shopware-clicktrail**
 
-ClickTrail attribution across the full Shopware 6 commerce lifecycle — capture the storefront visit, then forward consent-gated sale and refund events that stay attached to the original attribution.
+Capture observed storefront acquisition context and map configured Shopware 6
+order-state events. Order-level persistence and live delivery remain subject to
+the documented deferrals.
 
 </div>
 
@@ -29,7 +31,12 @@ ClickTrail attribution across the full Shopware 6 commerce lifecycle — capture
 
 ## Why
 
-Ecommerce trackers usually fire a purchase pixel and forget it. This Shopware 6.6 plugin attaches the deterministic ClickTrail core ([`clicktrail/php-sdk`](https://github.com/vizuh/clicktrail-php)) to the whole commerce lifecycle: a paid-search visit is captured on the storefront, and every later state change — placed, paid, completed, cancelled, refunded — becomes a consent-gated event envelope carrying order value, currency, customer and order IDs. A refund is never an orphan row; it stays attached to the attribution that created the sale.
+This plugin currently demonstrates two separate paths: it captures observed
+acquisition context in the storefront session, and it maps configured order
+state changes to consent-gated event envelopes. Session-only storage cannot yet
+carry that context into later order lifecycle events, so this version does not
+provide end-to-end commerce attribution. See **Status and deferrals** before
+testing delivery.
 
 ## Installation
 
@@ -90,10 +97,13 @@ Five subscribers translate Shopware state changes into schema-versioned SDK enve
 | OrderPlacedSubscriber | `checkout.order.placed` | `sale` |
 | OrderPaidSubscriber | `state_enter.order_transaction_state.paid` | `sale` (paid stage) |
 | OrderCompletedSubscriber | `state_enter.order_state.completed` | `sale` (fulfilled) |
-| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale` + `status=cancelled` extra — not a refund |
+| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale` + `status=cancelled` extra; not a refund |
 | RefundSubscriber | `state_enter.order_transaction_state.refunded` | `refund` |
 
-Every envelope carries order value, currency, customer ID and order number. The refund envelope keeps the link to the attribution captured at `storefront_visit`. State-machine event names are marked `TODO verify` against 6.6 before the first release tag.
+The envelope schema includes order value, currency, customer ID, and order
+number. Current session-only storage does not yet prove that storefront
+attribution reaches these lifecycle envelopes. State-machine event names remain
+`TODO verify` against Shopware 6.6 before the first release tag.
 
 ## Consent gating
 
@@ -107,7 +117,7 @@ if ($snapshot === null) {
 }
 ```
 
-`ShopwareConsentResolver` is the CMP hook point: in `auto-detect` mode it reads a `window.__clicktrail_consent` payload injected by the loader snippet; in `custom` mode you replace the service definition in `services.xml`. Until a real resolver is wired it returns an all-unknown snapshot — so by default, nothing forwards.
+`ShopwareConsentResolver` is the CMP hook point: in `auto-detect` mode it reads a `window.__clicktrail_consent` payload injected by the loader snippet; in `custom` mode you replace the service definition in `services.xml`. Until a real resolver is wired it returns an all-unknown snapshot; so by default, nothing forwards.
 
 ## First-party proxy
 
@@ -123,7 +133,7 @@ Queueing into `BatchClient` and flushing on `kernel.terminate` is deferred pendi
 
 ## State storage
 
-A documented v1 choice: attribution state lives **in the storefront session only**. No database tables ship, therefore no migrations. Consequence: order lifecycle events cannot read back attribution captured days earlier yet — persisting `StoredState` with the order is planned v2 work.
+A documented v1 choice: attribution state lives **in the storefront session only**. No database tables ship, therefore no migrations. Consequence: order lifecycle events cannot read back attribution captured days earlier yet; persisting `StoredState` with the order is planned v2 work.
 
 ## How it differs
 
@@ -138,15 +148,15 @@ A documented v1 choice: attribution state lives **in the storefront session only
 
 Distribution goes through the Shopware Store, which reviews quality, security, compatibility and compliance before listing:
 
-- No dynamic SQL — DAL repositories or parameterized DBAL only.
+- No dynamic SQL; DAL repositories or parameterized DBAL only.
 - CSRF handling on any storefront write route.
 - No PII beyond what consent allows.
 - CSP-compatible script injection through theme blocks.
-- Consent behavior follows the normalized contract in [`docs/consent-compatibility-plan.md`](../docs/consent-compatibility-plan.md) (unknown = denied).
+- Consent behavior follows the [shared SDK consent contract](https://github.com/vizuh/clicktrail-php/tree/main/src/Consent) (unknown = denied).
 
 ## Status and deferrals
 
-- Concrete CMP integration (Cookiebot/CookieYes/iubenda bridge): DEFERRED — the resolver returns all-unknown today, so nothing forwards until wired.
+- Concrete CMP integration (Cookiebot/CookieYes/iubenda bridge): DEFERRED; the resolver returns all-unknown today, so nothing forwards until wired.
 - `BatchClient` queueing in `CollectController` and commerce subscribers: DEFERRED pending live-endpoint verification.
 - Twig block names and state-machine event names: marked `TODO verify` against Shopware 6.6 before the first release tag.
 

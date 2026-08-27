@@ -4,7 +4,9 @@
 
 **vizuh/shopware-clicktrail**
 
-Atribuição ClickTrail por todo o ciclo de vida do comércio no Shopware 6 — captura a visita à vitrine e encaminha eventos de venda e reembolso, condicionados a consentimento, sempre vinculados à atribuição original.
+Capture o contexto de aquisição observado na vitrine e mapeie eventos
+configurados de estado de pedidos do Shopware 6. A persistência no pedido e a
+entrega em runtime continuam sujeitas aos adiamentos documentados.
 
 </div>
 
@@ -29,7 +31,12 @@ Atribuição ClickTrail por todo o ciclo de vida do comércio no Shopware 6 — 
 
 ## Por quê
 
-Rastreadores de e-commerce costumam disparar um pixel de compra e esquecer o resto. Este plugin para Shopware 6.6 conecta o núcleo determinístico do ClickTrail ([`clicktrail/php-sdk`](https://github.com/vizuh/clicktrail-php)) ao ciclo de vida comercial inteiro: uma visita vinda de busca paga é capturada na vitrine, e cada mudança de estado posterior — pedido feito, pago, concluído, cancelado, reembolsado — vira um envelope de evento condicionado a consentimento, com valor do pedido, moeda, IDs do cliente e do pedido. Um reembolso nunca é uma linha órfã; ele permanece vinculado à atribuição que gerou a venda.
+Este plugin demonstra hoje dois caminhos separados: captura o contexto de
+aquisição observado na sessão da vitrine e mapeia mudanças configuradas de
+estado do pedido para envelopes de evento condicionados a consentimento. O
+armazenamento apenas em sessão ainda não leva esse contexto aos eventos
+posteriores do pedido. Portanto, esta versão não oferece atribuição de comércio
+end-to-end. Consulte **Status e adiamentos** antes de testar a entrega.
 
 ## Instalação
 
@@ -90,10 +97,14 @@ Cinco subscribers traduzem mudanças de estado do Shopware em envelopes versiona
 | OrderPlacedSubscriber | `checkout.order.placed` | `sale` |
 | OrderPaidSubscriber | `state_enter.order_transaction_state.paid` | `sale` (etapa pago) |
 | OrderCompletedSubscriber | `state_enter.order_state.completed` | `sale` (concluído) |
-| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale` + extra `status=cancelled` — não é reembolso |
+| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale` + extra `status=cancelled`; não é reembolso |
 | RefundSubscriber | `state_enter.order_transaction_state.refunded` | `refund` |
 
-Todo envelope carrega valor do pedido, moeda, ID do cliente e número do pedido. O envelope de reembolso mantém o vínculo com a atribuição capturada em `storefront_visit`. Os nomes de eventos da state machine estão marcados `TODO verify` contra a 6.6 antes da primeira tag de release.
+O schema do envelope inclui valor do pedido, moeda, ID do cliente e número do
+pedido. O armazenamento atual apenas em sessão ainda não comprova que a
+atribuição da vitrine chega a esses envelopes do ciclo de vida. Os nomes de
+eventos da state machine continuam `TODO verify` contra Shopware 6.6 antes da
+primeira tag de release.
 
 ## Gate de consentimento
 
@@ -107,7 +118,7 @@ if ($snapshot === null) {
 }
 ```
 
-`ShopwareConsentResolver` é o hook point de CMP: em modo `auto-detect` lê um payload `window.__clicktrail_consent` injetado pelo snippet loader; em modo `custom` você substitui a definição do serviço em `services.xml`. Até um resolver real ser conectado, ele retorna um snapshot all-unknown — ou seja, por padrão nada é encaminhado.
+`ShopwareConsentResolver` é o hook point de CMP: em modo `auto-detect` lê um payload `window.__clicktrail_consent` injetado pelo snippet loader; em modo `custom` você substitui a definição do serviço em `services.xml`. Até um resolver real ser conectado, ele retorna um snapshot all-unknown; ou seja, por padrão nada é encaminhado.
 
 ## Proxy first-party
 
@@ -123,7 +134,7 @@ Enfileirar no `BatchClient` e fazer flush no `kernel.terminate` está adiado pen
 
 ## Armazenamento de estado
 
-Escolha documentada da v1: o estado de atribuição vive **apenas na sessão da vitrine**. Nenhuma tabela de banco acompanha o plugin, portanto não há migrations. Consequência: eventos de ciclo de vida do pedido ainda não conseguem ler atribuição capturada dias antes — persistir `StoredState` junto do pedido é trabalho planejado para a v2.
+Escolha documentada da v1: o estado de atribuição vive **apenas na sessão da vitrine**. Nenhuma tabela de banco acompanha o plugin, portanto não há migrations. Consequência: eventos de ciclo de vida do pedido ainda não conseguem ler atribuição capturada dias antes; persistir `StoredState` junto do pedido é trabalho planejado para a v2.
 
 ## Como é diferente
 
@@ -138,15 +149,15 @@ Escolha documentada da v1: o estado de atribuição vive **apenas na sessão da 
 
 A distribuição passa pela Shopware Store, que revisa qualidade, segurança, compatibilidade e conformidade antes de listar:
 
-- Sem SQL dinâmico — apenas repositories DAL ou DBAL parametrizado.
+- Sem SQL dinâmico; apenas repositories DAL ou DBAL parametrizado.
 - Tratamento de CSRF em toda rota de escrita da vitrine.
 - Nenhum PII além do que o consentimento permite.
 - Injeção de script compatível com CSP via theme blocks.
-- Comportamento de consentimento segue o contrato normalizado em [`docs/consent-compatibility-plan.md`](../docs/consent-compatibility-plan.md) (unknown = negado).
+- O comportamento de consentimento segue o [contrato de consentimento do SDK compartilhado](https://github.com/vizuh/clicktrail-php/tree/main/src/Consent) (unknown = negado).
 
 ## Status e adiamentos
 
-- Integração concreta de CMP (bridge Cookiebot/CookieYes/iubenda): ADIADO — o resolver retorna all-unknown hoje, então nada é encaminhado até ser conectado.
+- Integração concreta de CMP (bridge Cookiebot/CookieYes/iubenda): ADIADO; o resolver retorna all-unknown hoje, então nada é encaminhado até ser conectado.
 - Enfileiramento no `BatchClient` no `CollectController` e nos subscribers de comércio: ADIADO pendente de verificação do endpoint real.
 - Nomes de blocos Twig e de eventos da state machine: marcados `TODO verify` contra o Shopware 6.6 antes da primeira tag.
 

@@ -4,7 +4,9 @@
 
 **vizuh/shopware-clicktrail**
 
-ClickTrail-Attribution über den gesamten Shopware-6-Commerce-Lebenszyklus — erfasst den Storefront-Besuch und leitet consent-geprüfte Sale- und Refund-Events weiter, die der ursprünglichen Attribution zugeordnet bleiben.
+Erfassen Sie beobachteten Akquisitionskontext in der Storefront und ordnen Sie
+konfigurierte Shopware-6-Bestellstatus-Events zu. Persistenz an der Bestellung
+und Live-Zustellung unterliegen den dokumentierten Zurückstellungen.
 
 </div>
 
@@ -29,7 +31,13 @@ ClickTrail-Attribution über den gesamten Shopware-6-Commerce-Lebenszyklus — e
 
 ## Warum
 
-Ecommerce-Tracker feuern meist einen Kauf-Pixel ab und vergessen den Rest. Dieses Shopware-6.6-Plugin verbindet den deterministischen ClickTrail-Kern ([`clicktrail/php-sdk`](https://github.com/vizuh/clicktrail-php)) mit dem gesamten Commerce-Lebenszyklus: Ein Paid-Search-Besuch wird in der Storefront erfasst, und jede spätere Statusänderung — platziert, bezahlt, abgeschlossen, storniert, erstattet — wird zu einem consent-geprüften Event-Envelope mit Bestellwert, Währung, Kunden- und Bestellnummer. Eine Erstattung ist nie ein verwaister Datensatz; sie bleibt der Attribution zugeordnet, die den Verkauf erzeugt hat.
+Dieses Plugin zeigt derzeit zwei getrennte Pfade: Es erfasst beobachteten
+Akquisitionskontext in der Storefront-Session und ordnet konfigurierte
+Bestellstatusänderungen consent-geprüften Event-Envelopes zu. Reine
+Session-Speicherung kann diesen Kontext noch nicht in spätere
+Bestelllebenszyklus-Events übertragen. Diese Version bietet daher keine
+End-to-End-Commerce-Attribution. Lesen Sie vor Zustellungstests **Status und
+Zurückstellungen**.
 
 ## Installation
 
@@ -90,10 +98,14 @@ Fünf Subscriber übersetzen Shopware-Statusänderungen über `PayloadSerializer
 | OrderPlacedSubscriber | `checkout.order.placed` | `sale` |
 | OrderPaidSubscriber | `state_enter.order_transaction_state.paid` | `sale` (Stufe bezahlt) |
 | OrderCompletedSubscriber | `state_enter.order_state.completed` | `sale` (abgeschlossen) |
-| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale` + Extra `status=cancelled` — keine Erstattung |
+| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale` + Extra `status=cancelled`; keine Erstattung |
 | RefundSubscriber | `state_enter.order_transaction_state.refunded` | `refund` |
 
-Jeder Envelope trägt Bestellwert, Währung, Kunden-ID und Bestellnummer. Der Refund-Envelope behält die Verknüpfung zur beim `storefront_visit` erfassten Attribution. State-Machine-Eventnamen sind vor dem ersten Release-Tag mit `TODO verify` gegen 6.6 markiert.
+Das Envelope-Schema enthält Bestellwert, Währung, Kunden-ID und Bestellnummer.
+Die aktuelle reine Session-Speicherung beweist noch nicht, dass
+Storefront-Attribution diese Lebenszyklus-Envelopes erreicht.
+State-Machine-Eventnamen bleiben vor dem ersten Release-Tag mit `TODO verify`
+gegen Shopware 6.6 markiert.
 
 ## Consent-Gate
 
@@ -107,11 +119,11 @@ if ($snapshot === null) {
 }
 ```
 
-`ShopwareConsentResolver` ist der CMP-Hook-Punkt: Im Modus `auto-detect` liest er eine vom Loader-Snippet injizierte `window.__clicktrail_consent`-Payload; im Modus `custom` ersetzen Sie die Service-Definition in `services.xml`. Bis ein echter Resolver angebunden ist, liefert er einen all-unknown-Snapshot — standardmäßig geht also nichts raus.
+`ShopwareConsentResolver` ist der CMP-Hook-Punkt: Im Modus `auto-detect` liest er eine vom Loader-Snippet injizierte `window.__clicktrail_consent`-Payload; im Modus `custom` ersetzen Sie die Service-Definition in `services.xml`. Bis ein echter Resolver angebunden ist, liefert er einen all-unknown-Snapshot; standardmäßig geht also nichts raus.
 
 ## First-Party-Proxy
 
-Die optionale Route `POST /clicktrail/collect` erlaubt dem Storefront-Loader, Envelopes an Ihre eigene Domain statt direkt an den Ingest-Endpunkt zu senden — mit First-Party-Cookie-Kontext:
+Die optionale Route `POST /clicktrail/collect` erlaubt dem Storefront-Loader, Envelopes an Ihre eigene Domain statt direkt an den Ingest-Endpunkt zu senden; mit First-Party-Cookie-Kontext:
 
 ```php
 // CollectController: deaktivierte Route antwortet 404 {"error":"disabled"};
@@ -123,7 +135,7 @@ Das Einreihen in `BatchClient` und Flush auf `kernel.terminate` ist zurückgeste
 
 ## Statusspeicherung
 
-Dokumentierte v1-Entscheidung: Der Attributionszustand lebt **nur in der Storefront-Session**. Keine Datenbanktabellen, daher keine Migrationen. Folge: Order-Lifecycle-Events können bisher keine Tage zuvor erfasste Attribution zurücklesen — das Persistieren von `StoredState` mit der Bestellung ist geplante v2-Arbeit.
+Dokumentierte v1-Entscheidung: Der Attributionszustand lebt **nur in der Storefront-Session**. Keine Datenbanktabellen, daher keine Migrationen. Folge: Order-Lifecycle-Events können bisher keine Tage zuvor erfasste Attribution zurücklesen; das Persistieren von `StoredState` mit der Bestellung ist geplante v2-Arbeit.
 
 ## Worin es sich unterscheidet
 
@@ -138,15 +150,15 @@ Dokumentierte v1-Entscheidung: Der Attributionszustand lebt **nur in der Storefr
 
 Der Vertrieb läuft über den Shopware Store, der Qualität, Sicherheit, Kompatibilität und Compliance vor dem Listing prüft:
 
-- Kein dynamisches SQL — nur DAL-Repositories oder parametrisiertes DBAL.
+- Kein dynamisches SQL; nur DAL-Repositories oder parametrisiertes DBAL.
 - CSRF-Behandlung auf jeder Storefront-Write-Route.
 - Keine PII über das hinaus, was Consent erlaubt.
 - CSP-kompatible Skript-Injektion über Theme-Blocks.
-- Consent-Verhalten folgt dem normalisierten Vertrag in [`docs/consent-compatibility-plan.md`](../docs/consent-compatibility-plan.md) (unknown = denied).
+- Das Consent-Verhalten folgt dem [Consent-Vertrag des gemeinsamen SDK](https://github.com/vizuh/clicktrail-php/tree/main/src/Consent) (unknown = denied).
 
 ## Status und Zurückstellungen
 
-- Konkrete CMP-Integration (Cookiebot/CookieYes/iubenda-Bridge): ZURÜCKGESTELLT — der Resolver liefert heute all-unknown, es geht also nichts weiter, bis er angebunden ist.
+- Konkrete CMP-Integration (Cookiebot/CookieYes/iubenda-Bridge): ZURÜCKGESTELLT; der Resolver liefert heute all-unknown, es geht also nichts weiter, bis er angebunden ist.
 - `BatchClient`-Queueing in `CollectController` und Commerce-Subscribers: ZURÜCKGESTELLT bis zur Live-Endpunkt-Verifikation.
 - Twig-Blocknamen und State-Machine-Eventnamen: mit `TODO verify` gegen Shopware 6.6 markiert, vor dem ersten Release-Tag.
 
