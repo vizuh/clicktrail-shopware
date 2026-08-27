@@ -43,14 +43,14 @@
     </store>
     <store>
         <name>enableSaleForwarding</name>
-        <label>Forward sale.completed / lifecycle events</label>
+        <label>Forward sale / lifecycle events</label>
         <type>bool</type>
         <defaultValue>true</defaultValue>
         <position>5</position>
     </store>
     <store>
         <name>enableRefundForwarding</name>
-        <label>Forward sale.refunded events</label>
+        <label>Forward refund events</label>
         <type>bool</type>
         <defaultValue>true</defaultValue>
         <position>6</position>

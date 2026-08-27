@@ -77,8 +77,8 @@ Settings → Extensions → ClickTrail (`src/Resources/config/config.xml`), read
 | API endpoint | Ingest base URL | empty |
 | Consent integration mode | `auto-detect` (CMP hook point) or `custom` (developer-supplied resolver) | auto-detect |
 | Capture storefront touches | Enables the request subscriber | on |
-| Forward sale.completed / lifecycle events | Gates all commerce subscribers | on |
-| Forward sale.refunded events | Gates refund forwarding only | on |
+| Forward sale / lifecycle events | Gates all commerce subscribers | on |
+| Forward refund events | Gates refund forwarding only | on |
 | Enable first-party proxy route (`/clicktrail/collect`) | Off by default; enable when your stack wants a first-party cookie context | off |
 
 ## Order lifecycle forwarding
@@ -87,11 +87,11 @@ Five subscribers translate Shopware state changes into schema-versioned SDK enve
 
 | Subscriber | Shopware event | Envelope |
 |---|---|---|
-| OrderPlacedSubscriber | `checkout.order.placed` | `sale.completed` |
-| OrderPaidSubscriber | `state_enter.order_transaction_state.paid` | `sale.completed` (paid stage) |
-| OrderCompletedSubscriber | `state_enter.order_state.completed` | `sale.completed` (fulfilled) |
-| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale.completed` + `status=cancelled` extra — not a refund |
-| RefundSubscriber | `state_enter.order_transaction_state.refunded` | `sale.refunded` |
+| OrderPlacedSubscriber | `checkout.order.placed` | `sale` |
+| OrderPaidSubscriber | `state_enter.order_transaction_state.paid` | `sale` (paid stage) |
+| OrderCompletedSubscriber | `state_enter.order_state.completed` | `sale` (fulfilled) |
+| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale` + `status=cancelled` extra — not a refund |
+| RefundSubscriber | `state_enter.order_transaction_state.refunded` | `refund` |
 
 Every envelope carries order value, currency, customer ID and order number. The refund envelope keeps the link to the attribution captured at `storefront_visit`. State-machine event names are marked `TODO verify` against 6.6 before the first release tag.
 
@@ -130,7 +130,7 @@ A documented v1 choice: attribution state lives **in the storefront session only
 | | This plugin | Generic ecommerce tracking |
 |---|---|---|
 | Attribution | Deterministic first/last-touch merge laws from the shared SDK, identical in WordPress/GTM adapters | Per-platform last-click guesses |
-| Refunds | `sale.refunded` stays attached to the initial attribution | Usually a detached refund event |
+| Refunds | `refund` stays attached to the initial attribution | Usually a detached refund event |
 | Consent | Normalized contract, unknown = denied, enforced before any send | Often a client-side flag only |
 | Storage | Session-only v1, zero migrations | Plugin-specific tables from day one |
 

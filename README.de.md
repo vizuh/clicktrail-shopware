@@ -77,8 +77,8 @@ Settings → Extensions → ClickTrail (`src/Resources/config/config.xml`), pro 
 | API endpoint | Ingest-Basis-URL | leer |
 | Consent integration mode | `auto-detect` (CMP-Hook-Punkt) oder `custom` (Entwickler-Resolver) | auto-detect |
 | Capture storefront touches | Aktiviert den Request-Subscriber | an |
-| Forward sale.completed / lifecycle events | Gate für alle Commerce-Subscriber | an |
-| Forward sale.refunded events | Gate ausschließlich für Erstattungen | an |
+| Forward sale / lifecycle events | Gate für alle Commerce-Subscriber | an |
+| Forward refund events | Gate ausschließlich für Erstattungen | an |
 | Enable first-party proxy route (`/clicktrail/collect`) | Standardmäßig aus; aktivieren, wenn Ihr Stack First-Party-Cookie-Kontext will | aus |
 
 ## Weiterleitung des Bestell-Lebenszyklus
@@ -87,11 +87,11 @@ Fünf Subscriber übersetzen Shopware-Statusänderungen über `PayloadSerializer
 
 | Subscriber | Shopware-Event | Envelope |
 |---|---|---|
-| OrderPlacedSubscriber | `checkout.order.placed` | `sale.completed` |
-| OrderPaidSubscriber | `state_enter.order_transaction_state.paid` | `sale.completed` (Stufe bezahlt) |
-| OrderCompletedSubscriber | `state_enter.order_state.completed` | `sale.completed` (abgeschlossen) |
-| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale.completed` + Extra `status=cancelled` — keine Erstattung |
-| RefundSubscriber | `state_enter.order_transaction_state.refunded` | `sale.refunded` |
+| OrderPlacedSubscriber | `checkout.order.placed` | `sale` |
+| OrderPaidSubscriber | `state_enter.order_transaction_state.paid` | `sale` (Stufe bezahlt) |
+| OrderCompletedSubscriber | `state_enter.order_state.completed` | `sale` (abgeschlossen) |
+| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale` + Extra `status=cancelled` — keine Erstattung |
+| RefundSubscriber | `state_enter.order_transaction_state.refunded` | `refund` |
 
 Jeder Envelope trägt Bestellwert, Währung, Kunden-ID und Bestellnummer. Der Refund-Envelope behält die Verknüpfung zur beim `storefront_visit` erfassten Attribution. State-Machine-Eventnamen sind vor dem ersten Release-Tag mit `TODO verify` gegen 6.6 markiert.
 
@@ -130,7 +130,7 @@ Dokumentierte v1-Entscheidung: Der Attributionszustand lebt **nur in der Storefr
 | | Dieses Plugin | Generisches Ecommerce-Tracking |
 |---|---|---|
 | Attribution | Deterministische First-/Last-Touch-Merge-Gesetze aus dem gemeinsamen SDK, identisch in WordPress/GTM-Adaptern | Plattformspezifische Last-Click-Vermutungen |
-| Erstattungen | `sale.refunded` bleibt der ursprünglichen Attribution zugeordnet | Meist ein losgelöstes Refund-Event |
+| Erstattungen | `refund` bleibt der ursprünglichen Attribution zugeordnet | Meist ein losgelöstes Refund-Event |
 | Consent | Normalisierter Vertrag, unknown = denied, durchgesetzt vor jedem Senden | Oft nur ein clientseitiges Flag |
 | Speicherung | Session-only in v1, null Migrationen | Pluginspezifische Tabellen ab Tag eins |
 

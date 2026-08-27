@@ -77,8 +77,8 @@ Settings → Extensions → ClickTrail（`src/Resources/config/config.xml`），
 | API endpoint | 数据接入基础 URL | 空 |
 | Consent integration mode | `auto-detect`（CMP 挂载点）或 `custom`（开发者提供的 resolver） | auto-detect |
 | Capture storefront touches | 启用请求订阅者 | 开 |
-| Forward sale.completed / lifecycle events | 所有电商订阅者的总门控 | 开 |
-| Forward sale.refunded events | 仅控制退款转发 | 开 |
+| Forward sale / lifecycle events | 所有电商订阅者的总门控 | 开 |
+| Forward refund events | 仅控制退款转发 | 开 |
 | Enable first-party proxy route (`/clicktrail/collect`) | 默认关闭；当你的架构需要第一方 cookie 上下文时启用 | 关 |
 
 ## 订单生命周期转发
@@ -87,11 +87,11 @@ Settings → Extensions → ClickTrail（`src/Resources/config/config.xml`），
 
 | 订阅者 | Shopware 事件 | 信封 |
 |---|---|---|
-| OrderPlacedSubscriber | `checkout.order.placed` | `sale.completed` |
-| OrderPaidSubscriber | `state_enter.order_transaction_state.paid` | `sale.completed`（已支付阶段） |
-| OrderCompletedSubscriber | `state_enter.order_state.completed` | `sale.completed`（已完成） |
-| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale.completed` + `status=cancelled` 附加字段 —— 不算退款 |
-| RefundSubscriber | `state_enter.order_transaction_state.refunded` | `sale.refunded` |
+| OrderPlacedSubscriber | `checkout.order.placed` | `sale` |
+| OrderPaidSubscriber | `state_enter.order_transaction_state.paid` | `sale`（已支付阶段） |
+| OrderCompletedSubscriber | `state_enter.order_state.completed` | `sale`（已完成） |
+| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale` + `status=cancelled` 附加字段 —— 不算退款 |
+| RefundSubscriber | `state_enter.order_transaction_state.refunded` | `refund` |
 
 每个信封都携带订单金额、币种、客户 ID 和订单号。退款信封保持与 `storefront_visit` 时采集的归因的关联。状态机事件名在首个 release tag 前标记为针对 6.6 的 `TODO verify`。
 
@@ -130,7 +130,7 @@ v1 的明确设计选择：归因状态**只保存在店面 session 中**。不�
 | | 本插件 | 通用电商追踪 |
 |---|---|---|
 | 归因 | 共享 SDK 的确定性首触/末触合并法则，与 WordPress/GTM adapter 完全一致 | 各平台自行的末次点击猜测 |
-| 退款 | `sale.refunded` 保持与最初归因的关联 | 通常是孤立的退款事件 |
+| 退款 | `refund` 保持与最初归因的关联 | 通常是孤立的退款事件 |
 | 同意 | 规范化契约，unknown = denied，在任何发送之前强制执行 | 往往只是客户端标志位 |
 | 存储 | v1 仅使用 session，零 migration | 从第一天起就有插件自建表 |
 

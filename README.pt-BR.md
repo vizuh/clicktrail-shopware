@@ -77,8 +77,8 @@ Settings → Extensions → ClickTrail (`src/Resources/config/config.xml`), leg�
 | API endpoint | URL base de ingestão | vazia |
 | Consent integration mode | `auto-detect` (hook point de CMP) ou `custom` (resolver do desenvolvedor) | auto-detect |
 | Capture storefront touches | Ativa o subscriber de request | ligado |
-| Forward sale.completed / lifecycle events | Condiciona todos os subscribers de comércio | ligado |
-| Forward sale.refunded events | Condiciona apenas reembolsos | ligado |
+| Forward sale / lifecycle events | Condiciona todos os subscribers de comércio | ligado |
+| Forward refund events | Condiciona apenas reembolsos | ligado |
 | Enable first-party proxy route (`/clicktrail/collect`) | Desligado por padrão; ative quando sua stack quiser contexto de cookie first-party | desligado |
 
 ## Encaminhamento do ciclo de vida do pedido
@@ -87,11 +87,11 @@ Cinco subscribers traduzem mudanças de estado do Shopware em envelopes versiona
 
 | Subscriber | Evento Shopware | Envelope |
 |---|---|---|
-| OrderPlacedSubscriber | `checkout.order.placed` | `sale.completed` |
-| OrderPaidSubscriber | `state_enter.order_transaction_state.paid` | `sale.completed` (etapa pago) |
-| OrderCompletedSubscriber | `state_enter.order_state.completed` | `sale.completed` (concluído) |
-| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale.completed` + extra `status=cancelled` — não é reembolso |
-| RefundSubscriber | `state_enter.order_transaction_state.refunded` | `sale.refunded` |
+| OrderPlacedSubscriber | `checkout.order.placed` | `sale` |
+| OrderPaidSubscriber | `state_enter.order_transaction_state.paid` | `sale` (etapa pago) |
+| OrderCompletedSubscriber | `state_enter.order_state.completed` | `sale` (concluído) |
+| OrderCancelledSubscriber | `state_enter.order_state.cancelled` | `sale` + extra `status=cancelled` — não é reembolso |
+| RefundSubscriber | `state_enter.order_transaction_state.refunded` | `refund` |
 
 Todo envelope carrega valor do pedido, moeda, ID do cliente e número do pedido. O envelope de reembolso mantém o vínculo com a atribuição capturada em `storefront_visit`. Os nomes de eventos da state machine estão marcados `TODO verify` contra a 6.6 antes da primeira tag de release.
 
@@ -130,7 +130,7 @@ Escolha documentada da v1: o estado de atribuição vive **apenas na sessão da 
 | | Este plugin | Tracking genérico de e-commerce |
 |---|---|---|
 | Atribuição | Leis de merge determinísticas de primeiro/último toque do SDK compartilhado, idênticas nos adapters WordPress/GTM | Chutes de last-click por plataforma |
-| Reembolsos | `sale.refunded` permanece vinculado à atribuição inicial | Normalmente um evento de reembolso solto |
+| Reembolsos | `refund` permanece vinculado à atribuição inicial | Normalmente um evento de reembolso solto |
 | Consentimento | Contrato normalizado, unknown = negado, aplicado antes de qualquer envio | Muitas vezes apenas flag client-side |
 | Armazenamento | Apenas sessão na v1, zero migrations | Tabelas próprias desde o primeiro dia |
 
